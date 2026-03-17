@@ -59,11 +59,21 @@ if [[ "$pattern" != "flat" && "$pattern" != "standard" ]]; then
   usage
 fi
 
+# Derive base package from the *Application.java file location
+app_file="$(find "$repo_root/src/main/java" -maxdepth 5 -name '*Application.java' -not -path '*/test/*' | head -1)"
+if [[ -z "$app_file" ]]; then
+  echo "Cannot find *Application.java under src/main/java — is this a valid project?" >&2
+  exit 1
+fi
+app_dir="$(dirname "$app_file")"
+base_package_path="${app_dir#"$repo_root/src/main/java/"}"
+base_package="${base_package_path//\//.}"
+
 module_class="$(class_name "$module_name")"
-module_dir="$repo_root/src/main/java/nl/jinsoo/template/$module_name"
+module_dir="$repo_root/src/main/java/$base_package_path/$module_name"
 module_contract="$repo_root/.claude/rules/modules/$module_name.md"
 module_agents="$module_dir/AGENTS.md"
-module_paths="src/main/java/nl/jinsoo/template/$module_name/**"
+module_paths="src/main/java/$base_package_path/$module_name/**"
 
 if [[ -e "$module_dir" || -e "$module_contract" ]]; then
   echo "Module already exists: $module_name" >&2
@@ -71,7 +81,7 @@ if [[ -e "$module_dir" || -e "$module_contract" ]]; then
 fi
 
 if [[ "$dry_run" == true ]]; then
-  echo "Would create src/main/java/nl/jinsoo/template/$module_name/"
+  echo "Would create src/main/java/$base_package_path/$module_name/"
   echo "Would create .claude/rules/modules/$module_name.md"
   exit 0
 fi
@@ -84,17 +94,17 @@ fi
 
 cat >"$module_dir/package-info.java" <<EOF
 $(module_annotation "$allowed_deps")
-package nl.jinsoo.template.$module_name;
+package $base_package.$module_name;
 EOF
 
 cat >"$module_dir/${module_class}.java" <<EOF
-package nl.jinsoo.template.$module_name;
+package $base_package.$module_name;
 
 public record ${module_class}(String id) {}
 EOF
 
 cat >"$module_dir/${module_class}API.java" <<EOF
-package nl.jinsoo.template.$module_name;
+package $base_package.$module_name;
 
 import java.util.List;
 import java.util.Optional;
@@ -219,5 +229,5 @@ TODO: intent, idempotency, retry-safety, UX expectations.
 EOF
 
 echo "Created module scaffold:"
-echo "  src/main/java/nl/jinsoo/template/$module_name/"
+echo "  src/main/java/$base_package_path/$module_name/"
 echo "  .claude/rules/modules/$module_name.md"

@@ -181,4 +181,14 @@ else
 fi
 
 echo ""
-echo "Done! Run './mvnw -q compile' to verify."
+if $DRY_RUN; then
+    echo "Done (dry run). No files were modified."
+else
+    echo "Verifying result compiles..."
+    if ./mvnw -q compile; then
+        echo "Done! Template rewrite verified — compile succeeded."
+    else
+        echo "ERROR: compile failed after rewrite. Check the output above." >&2
+        exit 1
+    fi
+fi

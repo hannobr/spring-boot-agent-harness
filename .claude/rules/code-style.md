@@ -25,6 +25,10 @@ Priority when principles conflict: YAGNI > KISS > SOLID > DRY.
 
 When a class accumulates private methods that share no instance state — they only take parameters and return results — extract them into separate classes grouped by responsibility. The test: if you can move related private methods to a new class without passing `this`, they don't belong here.
 
+## Lombok
+
+Allowed annotations: `@Slf4j`, `@With`, `@Builder`. Nothing else — no `@Data`, `@Getter`, `@Setter`, `@Value`, `@AllArgsConstructor`, `@NoArgsConstructor`. Records and sealed types handle what those do.
+
 ## Logging
 
 Always use Lombok `@Slf4j`. Never manual `LoggerFactory.getLogger()`.

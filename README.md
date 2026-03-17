@@ -5,10 +5,13 @@ Agent-first Java 25 / Spring Boot 4 template with Spring Modulith, Spring Data J
 ## Quick Start
 
 ```bash
-# Start database
-docker compose up -d
+scripts/harness/run-app
+```
 
-# Start backend (http://localhost:8080)
+Or manually:
+
+```bash
+docker compose up -d
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 

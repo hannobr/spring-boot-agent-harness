@@ -3,6 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 smoke_port="${SMOKE_STARTUP_PORT:-18080}"
+smoke_db_port="${SMOKE_DB_PORT:-15433}"
+smoke_container="template-smoke-postgres"
 log_dir="$repo_root/target/harness"
 log_file="$log_dir/smoke-startup.log"
 
@@ -10,17 +12,17 @@ mkdir -p "$log_dir"
 : > "$log_file"
 
 cd "$repo_root"
-if ! docker compose up -d 2>/dev/null; then
-  echo "docker compose failed (sandbox volume issue?), starting PostgreSQL manually..."
-  if ! docker ps --format '{{.Names}}' | grep -q template-postgres; then
-    docker rm -f template-postgres 2>/dev/null || true
-    docker run -d --name template-postgres -p 5433:5432 \
-      -e POSTGRES_DB=template -e POSTGRES_USER=template -e POSTGRES_PASSWORD=template \
-      --tmpfs /var/lib/postgresql/data postgres:17-alpine
-  fi
+
+# Use an isolated Postgres container so we never touch the dev stack
+if ! docker ps --format '{{.Names}}' | grep -q "$smoke_container"; then
+  docker rm -f "$smoke_container" 2>/dev/null || true
+  docker run -d --name "$smoke_container" -p "$smoke_db_port":5432 \
+    -e POSTGRES_DB=template -e POSTGRES_USER=template -e POSTGRES_PASSWORD=template \
+    --tmpfs /var/lib/postgresql/data postgres:17-alpine
 fi
 
-./mvnw -Dspring-boot.run.arguments="--server.port=$smoke_port" spring-boot:run >"$log_file" 2>&1 &
+./mvnw -Dspring-boot.run.arguments="--server.port=$smoke_port --spring.datasource.url=jdbc:postgresql://localhost:$smoke_db_port/template" \
+  spring-boot:run >"$log_file" 2>&1 &
 app_pid=$!
 
 cleanup() {
@@ -28,8 +30,7 @@ cleanup() {
     kill "$app_pid" 2>/dev/null || true
     wait "$app_pid" 2>/dev/null || true
   fi
-  docker compose down 2>/dev/null || true
-  docker rm -f template-postgres 2>/dev/null || true
+  docker rm -f "$smoke_container" 2>/dev/null || true
 }
 
 trap cleanup EXIT INT TERM

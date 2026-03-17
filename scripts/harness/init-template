@@ -34,7 +34,7 @@ OLD_GROUP_ID="nl.jinsoo"
 OLD_ARTIFACT_ID="template"
 OLD_BASE_PACKAGE="nl.jinsoo.template"
 OLD_PACKAGE_PATH="nl/jinsoo/template"
-NEW_PACKAGE_PATH="${BASE_PACKAGE//./\/}"
+NEW_PACKAGE_PATH="$(echo "$BASE_PACKAGE" | tr '.' '/')"
 
 # Detect sed flavor
 if sed --version 2>/dev/null | grep -q 'GNU'; then
@@ -161,7 +161,7 @@ fi
 # 6. Rename the main application class
 MAIN_CLASS="src/main/java/$NEW_PACKAGE_PATH/TemplateApplication.java"
 if [ -f "$MAIN_CLASS" ] && ! $DRY_RUN; then
-    NEW_CLASS_NAME="$(echo "$ARTIFACT_ID" | sed -E 's/(^|[-_])([a-z])/\U\2/g')Application"
+    NEW_CLASS_NAME="$(echo "$ARTIFACT_ID" | awk -F'[-_]' '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1' OFS='')Application"
     NEW_FILE="src/main/java/$NEW_PACKAGE_PATH/${NEW_CLASS_NAME}.java"
     "${SED_INPLACE[@]}" "s/TemplateApplication/$NEW_CLASS_NAME/g" "$MAIN_CLASS"
     mv "$MAIN_CLASS" "$NEW_FILE"

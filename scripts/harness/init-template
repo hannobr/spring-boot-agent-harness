@@ -63,7 +63,13 @@ for root in src/main/java src/test/java; do
         else
             mkdir -p "$root/$NEW_PACKAGE_PATH"
             cp -r "$root/$OLD_PACKAGE_PATH/"* "$root/$NEW_PACKAGE_PATH/"
-            rm -rf "$root/${OLD_PACKAGE_PATH%%/*}"
+            rm -rf "$root/$OLD_PACKAGE_PATH"
+            # Prune empty ancestor directories up to (but not including) $root
+            _dir="$(dirname "$root/$OLD_PACKAGE_PATH")"
+            while [[ "$_dir" != "$root" ]] && [ -d "$_dir" ] && [ -z "$(ls -A "$_dir")" ]; do
+                rmdir "$_dir"
+                _dir="$(dirname "$_dir")"
+            done
         fi
     fi
 done

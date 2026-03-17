@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+smoke_port="${SMOKE_STARTUP_PORT:-18080}"
+log_dir="$repo_root/target/harness"
+log_file="$log_dir/smoke-startup.log"
+
+mkdir -p "$log_dir"
+: > "$log_file"
+
+cd "$repo_root"
+if ! docker compose up -d 2>/dev/null; then
+  echo "docker compose failed (sandbox volume issue?), starting PostgreSQL manually..."
+  if ! docker ps --format '{{.Names}}' | grep -q template-postgres; then
+    docker rm -f template-postgres 2>/dev/null || true
+    docker run -d --name template-postgres -p 5433:5432 \
+      -e POSTGRES_DB=template -e POSTGRES_USER=template -e POSTGRES_PASSWORD=template \
+      --tmpfs /var/lib/postgresql/data postgres:17-alpine
+  fi
+fi
+
+./mvnw -Dspring-boot.run.arguments="--server.port=$smoke_port" spring-boot:run >"$log_file" 2>&1 &
+app_pid=$!
+
+cleanup() {
+  if kill -0 "$app_pid" 2>/dev/null; then
+    kill "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+  fi
+  docker compose down 2>/dev/null || true
+  docker rm -f template-postgres 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+for _ in $(seq 1 120); do
+  if ! kill -0 "$app_pid" 2>/dev/null; then
+    echo "Application exited before startup completed. Log: $log_file" >&2
+    tail -n 50 "$log_file" >&2 || true
+    exit 1
+  fi
+
+  started=false
+  if grep -q "Started " "$log_file" 2>/dev/null; then
+    started=true
+  fi
+
+  if [[ "$started" == true ]] && command -v curl >/dev/null 2>&1; then
+    if curl -fsS "http://localhost:$smoke_port/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+      # Opportunistically fetch OpenAPI spec while app is running (avoids a second startup)
+      curl -fsS "http://localhost:$smoke_port/v3/api-docs" -o "$log_dir/openapi-current.json" 2>/dev/null || true
+      echo "Startup smoke passed on port $smoke_port. Log: $log_file"
+      exit 0
+    fi
+  fi
+
+  if [[ "$started" == true ]] && ! command -v curl >/dev/null 2>&1; then
+    echo "Startup smoke passed on port $smoke_port. Log: $log_file"
+    exit 0
+  fi
+
+  sleep 1
+done
+
+echo "Startup smoke timed out. Log: $log_file" >&2
+tail -n 50 "$log_file" >&2 || true
+exit 1

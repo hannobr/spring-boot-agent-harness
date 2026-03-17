@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: template
+  profiles:
+    default: dev
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,26 @@
+{
+  "skill_name": "critic",
+  "evals": [
+    {
+      "id": 0,
+      "name": "business-idea",
+      "prompt": "I'm thinking of building a SaaS platform that helps small restaurants manage their supply chain. They'd connect with local suppliers, auto-reorder based on predicted demand, and reduce food waste. Monthly subscription model, starting at €49/month.",
+      "expected_output": "Honest, deep critique of the business idea covering market dynamics, unit economics, competitive landscape, and execution risk. Should identify non-obvious blind spots. Should not be generically positive or generically negative.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "career-decision",
+      "prompt": "I'm a senior dev at a 50-person startup. I've been offered a lead role at a big bank for 40% more pay. The startup has no clear path to profitability but the tech is interesting and I like the team. Should I take the bank job?",
+      "expected_output": "Brutally honest assessment that doesn't default to 'follow your passion' or 'take the money'. Should probe hidden assumptions, identify what information is missing, and challenge the framing of the decision itself.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "repo-review",
+      "prompt": "Review this repo — it's meant to be a reusable greenfield template for Java 25 + Spring Boot 4 projects, designed to be agent-friendly for tools like Claude Code and Codex. Is this actually a good template?",
+      "expected_output": "Critical review of the repo as a template. Should examine what's there AND what's missing. Should assess agent-readiness honestly. Should not just list what exists — should challenge whether the choices are right.",
+      "files": []
+    }
+  ]
+}

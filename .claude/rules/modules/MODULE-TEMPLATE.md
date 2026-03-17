@@ -1,0 +1,85 @@
+# {Module Name} module contract
+
+> Copy this file to `.claude/rules/modules/{module-name}.md` and fill in all sections.
+> Add frontmatter: `paths: ["src/**/{module-name}/**"]`
+
+## Purpose
+{One sentence describing the business capability this module owns.}
+
+## Complexity
+{flat | standard}
+- **flat**: All classes in root package, use package-private visibility. For simple modules (≤5 classes, no REST, trivial persistence).
+- **standard**: `internal/`, `persistence/`, `rest/` subpackages. For modules with business logic, persistence adapters, and REST exposure.
+
+## Public API (root package)
+
+| Type | Role |
+|------|------|
+| `{Module}API` | Module API interface |
+| `{DomainType}` | Domain record |
+| `{Module}NotFoundException` | Domain exception |
+
+Event records also live in the root package — they are part of the public API. Consumer modules import event classes from the publisher.
+
+## Hidden packages (implementation details)
+
+> Only applicable for `standard` complexity. Omit for `flat` modules.
+
+| Package | Contains |
+|---------|----------|
+| `internal/` | Use cases, port interfaces, configuration |
+| `persistence/` | Entity records, repository adapters, Spring Data interfaces |
+| `rest/` | Controllers, request/response DTOs, exception handlers |
+
+## Allowed dependencies
+{List other modules this module depends on via their public API, or "None" if standalone.}
+
+**Important:** Mirror this list in `package-info.java` using `@ApplicationModule(allowedDependencies = ...)`. Without that, Spring Modulith does not enforce the boundary — this markdown is documentation only.
+
+## Cross-module communication
+- **Direct API calls** for reads/queries (synchronous, the caller needs the result).
+- **Events** for state-changing notifications (fire-and-forget, "this happened, react if you care").
+- Never use events as a request/response mechanism — if you need an answer, call the API.
+
+## Owned resources
+- **Database table(s):** {table names and migration files}
+- **REST endpoints:** {list endpoints}
+- **Events published:** {list event records, or "None"}
+- **Events consumed:** {list event records with source module, or "None"}
+
+## Consumer surface
+
+> Omit for modules with no REST endpoints or external consumers.
+
+| Endpoint | Method | Request body | Success response | Error responses |
+|----------|--------|-------------|-----------------|-----------------|
+| {path} | {GET/POST/...} | {DTO or N/A} | {status + shape} | {status codes + meaning} |
+
+### Behavioral notes
+{Idempotency, retry-safety, pagination, ordering, cache behavior — anything a consumer needs to know that isn't obvious from the shapes above. Include cross-cutting UX expectations when frontend is a consumer (e.g., "show inline error on 409, not redirect").}
+
+## Validation commands
+```bash
+# Fast: unit tests only (no Docker needed)
+./mvnw -q test -Dtest="{UnitTest1},{UnitTest2}"
+
+# Slice tests (Docker required)
+./mvnw -q test -Dtest="{SliceTest1},{SliceTest2}"
+
+# Module test (Docker required)
+./mvnw -q test -Dtest="{ModuleTest}"
+
+# Integration test (Docker required)
+./mvnw -q test -Dtest="{IntegrationTest}"
+
+# Full verification
+./mvnw -q verify
+```
+
+## Rules for changes in this module
+- New public types in root package must be added to the "Public API" table above
+- New internal classes must follow existing patterns per `.claude/rules/modulith.md`
+- No other module may directly access this module's owned tables
+- Update this contract when adding public API types, endpoints, tables, or dependencies
+- Keep `package-info.java` in sync with the "Allowed dependencies" section above
+- Update the consumer surface section when adding, changing, or removing endpoints or response shapes

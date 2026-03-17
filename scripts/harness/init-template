@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    echo "Usage: $0 --group-id <groupId> --artifact-id <artifactId> --base-package <basePackage> [--dry-run]"
+    echo ""
+    echo "Rewrites all hardcoded identifiers in this template repo."
+    echo ""
+    echo "Options:"
+    echo "  --group-id       Maven groupId (e.g., com.example)"
+    echo "  --artifact-id    Maven artifactId (e.g., my-service)"
+    echo "  --base-package   Java base package (e.g., com.example.myservice)"
+    echo "  --dry-run        Show what would change without modifying files"
+    exit 1
+}
+
+DRY_RUN=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --group-id) GROUP_ID="$2"; shift 2 ;;
+        --artifact-id) ARTIFACT_ID="$2"; shift 2 ;;
+        --base-package) BASE_PACKAGE="$2"; shift 2 ;;
+        --dry-run) DRY_RUN=true; shift ;;
+        *) usage ;;
+    esac
+done
+
+[[ -z "${GROUP_ID:-}" || -z "${ARTIFACT_ID:-}" || -z "${BASE_PACKAGE:-}" ]] && usage
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$repo_root"
+
+OLD_GROUP_ID="nl.jinsoo"
+OLD_ARTIFACT_ID="template"
+OLD_BASE_PACKAGE="nl.jinsoo.template"
+OLD_PACKAGE_PATH="nl/jinsoo/template"
+NEW_PACKAGE_PATH="${BASE_PACKAGE//./\/}"
+
+# Detect sed flavor
+if sed --version 2>/dev/null | grep -q 'GNU'; then
+    SED_INPLACE=(sed -i)
+else
+    SED_INPLACE=(sed -i '')
+fi
+
+echo "Rewriting:"
+echo "  Group ID:     $OLD_GROUP_ID → $GROUP_ID"
+echo "  Artifact ID:  $OLD_ARTIFACT_ID → $ARTIFACT_ID"
+echo "  Base Package: $OLD_BASE_PACKAGE → $BASE_PACKAGE"
+echo "  Package Path: $OLD_PACKAGE_PATH → $NEW_PACKAGE_PATH"
+echo ""
+
+if $DRY_RUN; then
+    echo "[DRY RUN] — no files will be modified"
+    echo ""
+fi
+
+# 1. Rename Java package directories
+for root in src/main/java src/test/java; do
+    if [ -d "$root/$OLD_PACKAGE_PATH" ]; then
+        if $DRY_RUN; then
+            echo "MOVE: $root/$OLD_PACKAGE_PATH → $root/$NEW_PACKAGE_PATH"
+        else
+            mkdir -p "$root/$NEW_PACKAGE_PATH"
+            cp -r "$root/$OLD_PACKAGE_PATH/"* "$root/$NEW_PACKAGE_PATH/"
+            rm -rf "$root/${OLD_PACKAGE_PATH%%/*}"
+        fi
+    fi
+done
+
+# 2. Replace package declarations and imports in all Java files
+if $DRY_RUN; then
+    echo "REPLACE in *.java: '$OLD_BASE_PACKAGE' → '$BASE_PACKAGE'"
+    grep -rl "$OLD_BASE_PACKAGE" --include="*.java" . 2>/dev/null | head -10 || true
+    echo "  ... (showing first 10 matches)"
+else
+    find . -name "*.java" -exec "${SED_INPLACE[@]}" "s/$OLD_BASE_PACKAGE/$BASE_PACKAGE/g" {} +
+fi
+
+# 3. Replace in pom.xml
+if $DRY_RUN; then
+    echo "REPLACE in pom.xml: groupId, artifactId, name"
+else
+    "${SED_INPLACE[@]}" "s|<groupId>$OLD_GROUP_ID</groupId>|<groupId>$GROUP_ID</groupId>|g" pom.xml
+    "${SED_INPLACE[@]}" "s|<artifactId>$OLD_ARTIFACT_ID</artifactId>|<artifactId>$ARTIFACT_ID</artifactId>|g" pom.xml
+    "${SED_INPLACE[@]}" "s|<name>$OLD_ARTIFACT_ID</name>|<name>$ARTIFACT_ID</name>|g" pom.xml
+fi
+
+# 4. Replace in config, rule, and doc files (dot-notation: nl.jinsoo.template)
+if $DRY_RUN; then
+    echo "REPLACE in *.yaml, *.yml, *.md, *.json: references to old package/artifact"
+else
+    find . \( -name "*.yaml" -o -name "*.yml" -o -name "*.md" -o -name "*.json" \) \
+        -not -path "./.git/*" \
+        -not -path "./target/*" \
+        -exec "${SED_INPLACE[@]}" "s/$OLD_BASE_PACKAGE/$BASE_PACKAGE/g" {} +
+fi
+
+# 4b. Replace slash-notation package paths (nl/jinsoo/template) in docs and configs
+if $DRY_RUN; then
+    echo "REPLACE in *.yaml, *.yml, *.md, *.json: slash-notation package paths"
+else
+    find . \( -name "*.yaml" -o -name "*.yml" -o -name "*.md" -o -name "*.json" \) \
+        -not -path "./.git/*" \
+        -not -path "./target/*" \
+        -exec "${SED_INPLACE[@]}" "s|$OLD_PACKAGE_PATH|$NEW_PACKAGE_PATH|g" {} +
+fi
+
+# 4c. Replace slash-notation package paths in scripts (excluding init-template itself)
+if $DRY_RUN; then
+    echo "REPLACE in scripts/: slash-notation package paths (excluding init-template)"
+else
+    find scripts/ -type f -not -name "init-template" \
+        -exec "${SED_INPLACE[@]}" "s|$OLD_PACKAGE_PATH|$NEW_PACKAGE_PATH|g" {} +
+fi
+
+# 5. Replace in compose file
+if $DRY_RUN; then
+    echo "REPLACE in docker compose files: service names, DB credentials"
+else
+    for f in compose.yaml docker-compose.yml; do
+        if [ -f "$f" ]; then
+            "${SED_INPLACE[@]}" "s/template-postgres/${ARTIFACT_ID}-postgres/g" "$f"
+            "${SED_INPLACE[@]}" "s/POSTGRES_DB=template/POSTGRES_DB=${ARTIFACT_ID}/g" "$f"
+            "${SED_INPLACE[@]}" "s/POSTGRES_USER=template/POSTGRES_USER=${ARTIFACT_ID}/g" "$f"
+            "${SED_INPLACE[@]}" "s/POSTGRES_PASSWORD=template/POSTGRES_PASSWORD=${ARTIFACT_ID}/g" "$f"
+        fi
+    done
+fi
+
+# 5b. Replace in datasource config (application-dev.yaml references db name)
+if $DRY_RUN; then
+    echo "REPLACE in application-dev.yaml: datasource references"
+else
+    if [ -f "src/main/resources/application-dev.yaml" ]; then
+        "${SED_INPLACE[@]}" "s|/template|/${ARTIFACT_ID}|g" src/main/resources/application-dev.yaml
+        "${SED_INPLACE[@]}" "s/username: template/username: ${ARTIFACT_ID}/g" src/main/resources/application-dev.yaml
+        "${SED_INPLACE[@]}" "s/password: template/password: ${ARTIFACT_ID}/g" src/main/resources/application-dev.yaml
+    fi
+fi
+
+# 5c. Replace in smoke-startup and scripts that reference container names
+if ! $DRY_RUN; then
+    find scripts/ -type f -exec "${SED_INPLACE[@]}" "s/template-postgres/${ARTIFACT_ID}-postgres/g" {} +
+    find scripts/ -type f -exec "${SED_INPLACE[@]}" "s/POSTGRES_DB=template/POSTGRES_DB=${ARTIFACT_ID}/g" {} +
+    find scripts/ -type f -exec "${SED_INPLACE[@]}" "s/POSTGRES_USER=template/POSTGRES_USER=${ARTIFACT_ID}/g" {} +
+    find scripts/ -type f -exec "${SED_INPLACE[@]}" "s/POSTGRES_PASSWORD=template/POSTGRES_PASSWORD=${ARTIFACT_ID}/g" {} +
+elif $DRY_RUN; then
+    echo "REPLACE in scripts/: container and DB references"
+fi
+
+# 5d. Replace spring.application.name in application.yaml
+if $DRY_RUN; then
+    echo "REPLACE in application.yaml: spring.application.name"
+else
+    if [ -f "src/main/resources/application.yaml" ]; then
+        "${SED_INPLACE[@]}" "s/name: template/name: ${ARTIFACT_ID}/g" src/main/resources/application.yaml
+    fi
+fi
+
+# 6. Rename the main application class
+MAIN_CLASS="src/main/java/$NEW_PACKAGE_PATH/TemplateApplication.java"
+if [ -f "$MAIN_CLASS" ] && ! $DRY_RUN; then
+    NEW_CLASS_NAME="$(echo "$ARTIFACT_ID" | sed -E 's/(^|[-_])([a-z])/\U\2/g')Application"
+    NEW_FILE="src/main/java/$NEW_PACKAGE_PATH/${NEW_CLASS_NAME}.java"
+    "${SED_INPLACE[@]}" "s/TemplateApplication/$NEW_CLASS_NAME/g" "$MAIN_CLASS"
+    mv "$MAIN_CLASS" "$NEW_FILE"
+    find . -name "*.java" -exec "${SED_INPLACE[@]}" "s/TemplateApplication/$NEW_CLASS_NAME/g" {} +
+elif $DRY_RUN; then
+    echo "RENAME: TemplateApplication → <ArtifactId>Application"
+fi
+
+# 7. Remove reference module (notepad)
+if $DRY_RUN; then
+    echo "REMOVE: reference notepad module (src, tests, migration, contract)"
+else
+    rm -rf "src/main/java/$NEW_PACKAGE_PATH/notepad"
+    rm -rf "src/test/java/$NEW_PACKAGE_PATH/notepad"
+    rm -f  "src/main/resources/db/migration/V2__create_notes_table.sql"
+    rm -f  ".claude/rules/modules/notepad.md"
+fi
+
+echo ""
+echo "Done! Run './mvnw -q compile' to verify."

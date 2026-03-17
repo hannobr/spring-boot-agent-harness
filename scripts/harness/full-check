@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+"$repo_root/scripts/harness/doc-lint"
+
+cd "$repo_root"
+./mvnw -q verify "$@"
+"$repo_root/scripts/harness/smoke-startup"
+"$repo_root/scripts/harness/check-openapi-drift" --offline

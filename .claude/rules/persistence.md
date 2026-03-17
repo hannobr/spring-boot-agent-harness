@@ -1,0 +1,75 @@
+---
+paths:
+  - "src/**/persistence/**"
+  - "src/main/resources/db/migration/**"
+---
+
+# Persistence adapter rules
+
+Implements port interfaces from `internal`. Translates between domain models and database representations.
+
+## Spring Data JDBC
+
+Production code uses repository interfaces, not JdbcClient.
+
+| Complexity | Approach |
+|---|---|
+| Simple CRUD | `CrudRepository` / `ListCrudRepository` |
+| Simple filters (up to ~3 params, no JOINs) | Derived query methods |
+| Complex queries (JOINs, aggregations) | `@Query` with native SQL |
+| Batch operations, stored procedures | `JdbcTemplate` alongside repository |
+
+JdbcClient and JdbcTemplate are allowed in production code only for batch/stored-proc use cases, and in test fixture setup code.
+
+## Entity mapping
+
+Use static factory methods on records. Direction: toward domain at inbound, away from domain at outbound.
+
+```java
+@Table("orders")
+public record OrderEntity(@Id Long id, String customerId, String status) {
+    public static OrderEntity from(Order order) { /* domain -> entity */ }
+    public Order toDomain() { /* entity -> domain */ }
+}
+```
+
+- Simple entities: `@Table`/`@Id`/`@Column` annotations on the persistence entity record.
+- When domain model is simple and team accepts it: Spring Data JDBC can work directly with annotated domain types.
+- Switch to separate persistence entity when: schema diverges from domain, multiple adapters, complex aggregates needing flattening.
+- For 10+ fields or conditional logic: dedicated `<Entity>Mapper` utility class (final, static methods, one per aggregate root).
+
+## Schema management — Flyway
+
+All schema changes are managed by Flyway migrations. Never use `schema.sql` for DDL.
+
+- Migrations live in `src/main/resources/db/migration/`
+- Naming: `V{n}__description.sql` (double underscore, snake_case description, e.g., `V1__create_orders_table.sql`)
+- Never edit a migration that has been applied — always create a new one
+- Use PostgreSQL-native types: `BIGSERIAL` for auto-generated IDs, `TEXT` for unbounded strings, `TIMESTAMPTZ` for timestamps
+- Use lowercase column names in DDL — Spring Data JDBC quotes identifiers, and PostgreSQL is case-sensitive for quoted identifiers
+
+## PostgreSQL + Spring Data JDBC notes
+
+- `BIGSERIAL` maps to `Long` with `@Id` — PostgreSQL handles auto-increment via sequences
+- Spring Data JDBC treats entities with non-null `@Id` as existing (triggers UPDATE). For pre-assigned IDs, add `@Version Integer version` (pass `null` for new entities)
+- PostgreSQL does not auto-uppercase identifiers (unlike H2) — use lowercase consistently in DDL and `@Table`/`@Column` annotations
+
+## Error handling
+
+Wrap infrastructure exceptions only when they have domain meaning:
+
+```java
+try { return repository.save(order); }
+catch (DuplicateKeyException e) { throw new OrderAlreadyExistsException(order.id()); }
+// Let other DataAccessExceptions propagate to the catch-all handler
+```
+
+## Aggregate save behaviour
+
+`repository.save()` on an aggregate with child collections does DELETE ALL + INSERT ALL for children on every save. This is by design — the aggregate is the consistency boundary. If this causes performance problems, the aggregate is too large — split it.
+
+## What NOT to do
+
+- No mapping in domain or application code. Domain does not know about entities or DTOs.
+- No passing DTOs through use cases. Convert to domain types at the boundary.
+- No shared mapper modules across adapters. Each adapter owns its mapping.

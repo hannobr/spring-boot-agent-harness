@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+status=0
+
+fail() {
+  echo "doc-lint: $1" >&2
+  status=1
+}
+
+check_markdown_links() {
+  local file="$1"
+  local file_dir
+  file_dir="$(cd "$(dirname "$file")" && pwd)"
+
+  while IFS= read -r target; do
+    [[ -n "$target" ]] || continue
+
+    case "$target" in
+      http://*|https://*|mailto:*|\#*)
+        continue
+        ;;
+    esac
+
+    target="${target%%#*}"
+    target="$(printf '%s' "$target" | sed -E 's/:[0-9]+(:[0-9]+)?$//')"
+
+    if [[ "$target" == /* ]]; then
+      if [[ ! -e "$target" ]]; then
+        fail "broken absolute link in ${file#$repo_root/}: $target"
+      fi
+      continue
+    fi
+
+    if ! (cd "$file_dir" && [[ -e "$target" ]]); then
+      fail "broken relative link in ${file#$repo_root/}: $target"
+    fi
+  done < <(perl -nle 'while (/\[[^\]]+\]\(([^)]+)\)/g) { print $1 }' "$file")
+}
+
+# Module contract existence check
+for package_info in "$repo_root"/src/main/java/nl/jinsoo/template/*/package-info.java; do
+  [[ -e "$package_info" ]] || continue
+  module_dir="$(dirname "$package_info")"
+  module_name="$(basename "$module_dir")"
+
+  if [[ ! -f "$repo_root/.claude/rules/modules/$module_name.md" ]]; then
+    fail "missing .claude/rules/modules/$module_name.md for module $module_name"
+  fi
+done
+
+# Module contract completeness checks
+for contract in "$repo_root"/.claude/rules/modules/*.md; do
+  [[ -e "$contract" ]] || continue
+  contract_name="$(basename "$contract")"
+  [[ "$contract_name" == "MODULE-TEMPLATE.md" ]] && continue
+
+  # Check A: no unresolved TODOs
+  while IFS=: read -r lineno line; do
+    fail "unresolved TODO in $contract_name:$lineno: $line"
+  done < <(grep -n 'TODO\|{TODO}' "$contract" || true)
+
+  # Check B: required sections present
+  complexity="$(grep -A1 '## Complexity' "$contract" | tail -1 | xargs)" || true
+  for section in "## Purpose" "## Public API" "## Allowed dependencies" "## Owned resources" "## Validation commands"; do
+    if ! grep -qi "^${section}" "$contract"; then
+      fail "missing required section '$section' in $contract_name"
+    fi
+  done
+  if [[ "$complexity" == "standard" ]]; then
+    if ! grep -qi "^## Hidden packages" "$contract"; then
+      fail "missing required section '## Hidden packages' for standard module in $contract_name"
+    fi
+  fi
+done
+
+# Markdown link integrity check
+while IFS= read -r file; do
+  check_markdown_links "$file"
+done < <(
+  {
+    printf '%s\n' "$repo_root/README.md"
+    printf '%s\n' "$repo_root/CLAUDE.md"
+    find "$repo_root/docs" -type f -name '*.md' | sort
+  } | sort -u
+)
+
+if [[ $status -ne 0 ]]; then
+  exit "$status"
+fi
+
+echo "doc-lint passed"

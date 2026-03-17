@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+smoke_port="${SMOKE_STARTUP_PORT:-18081}"
+log_dir="$repo_root/target/harness"
+log_file="$log_dir/generate-openapi.log"
+output_file="$repo_root/docs/generated/openapi.json"
+
+mkdir -p "$log_dir"
+: > "$log_file"
+
+cd "$repo_root"
+docker compose up -d
+
+./mvnw -Dspring-boot.run.arguments="--server.port=$smoke_port" spring-boot:run >"$log_file" 2>&1 &
+app_pid=$!
+
+cleanup() {
+  if kill -0 "$app_pid" 2>/dev/null; then
+    kill "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+  fi
+  docker compose down 2>/dev/null || true
+  docker rm -f template-postgres 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+# Wait for startup
+for _ in $(seq 1 120); do
+  if ! kill -0 "$app_pid" 2>/dev/null; then
+    echo "Application exited before startup completed. Log: $log_file" >&2
+    tail -n 50 "$log_file" >&2 || true
+    exit 1
+  fi
+
+  if grep -q "Started " "$log_file" 2>/dev/null; then
+    if command -v curl >/dev/null 2>&1; then
+      if curl -fsS "http://localhost:$smoke_port/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+        break
+      fi
+    else
+      break
+    fi
+  fi
+
+  sleep 1
+done
+
+# Fetch OpenAPI spec
+tmp_file="$log_dir/openapi-raw.json"
+if ! curl -fsS "http://localhost:$smoke_port/v3/api-docs" -o "$tmp_file" 2>/dev/null; then
+  echo "Failed to fetch OpenAPI spec from http://localhost:$smoke_port/v3/api-docs" >&2
+  exit 1
+fi
+
+# Strip the "servers" array — it contains the ephemeral generation port, not the real app port.
+python3 -c "
+import json, sys
+spec = json.load(open(sys.argv[1]))
+spec.pop('servers', None)
+json.dump(spec, open(sys.argv[2], 'w'), indent=2, sort_keys=True)
+" "$tmp_file" "$output_file"
+rm -f "$tmp_file"
+
+echo "OpenAPI spec written to ${output_file#$repo_root/}"

@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+plan_root="$repo_root/docs/exec-plans"
+
+usage() {
+  echo "Usage: $0 [--dry-run] <epic|plan> <topic-slug> [EPIC-XXXX]" >&2
+  exit 1
+}
+
+next_number() {
+  local prefix="$1"
+  local max=0
+  local file
+  for file in "$plan_root"/active/"$prefix"-*.md "$plan_root"/completed/"$prefix"-*.md; do
+    [[ -e "$file" ]] || continue
+    local name number
+    name="$(basename "$file")"
+    number="${name#"$prefix"-}"
+    number="${number%%-*}"
+    if ((10#$number > max)); then
+      max=$((10#$number))
+    fi
+  done
+  printf '%04d' $((max + 1))
+}
+
+sanitize_slug() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr ' _' '--' | tr -cd 'a-z0-9-'
+}
+
+dry_run=false
+if [[ ${1:-} == "--dry-run" ]]; then
+  dry_run=true
+  shift
+fi
+
+[[ $# -ge 2 ]] || usage
+
+kind="$1"
+slug="$(sanitize_slug "$2")"
+epic_id="${3:-}"
+
+case "$kind" in
+  epic)
+    number="$(next_number "EPIC")"
+    file="$plan_root/active/EPIC-$number-$slug.md"
+    if [[ "$dry_run" == true ]]; then
+      echo "Would create ${file#$repo_root/}"
+      exit 0
+    fi
+    cat >"$file" <<EOF
+---
+status: active
+---
+
+# EPIC-$number: ${slug//-/ }
+
+## Context
+- TODO
+
+## Key architectural decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+
+## Execution plans
+
+| Plan | Topic | Dependencies | Parallelism |
+|---|---|---|---|
+
+## Definition of done
+- TODO
+
+## Tech debt introduced
+- None yet.
+EOF
+    ;;
+  plan)
+    number="$(next_number "PLAN")"
+    file="$plan_root/active/PLAN-$number-$slug.md"
+    if [[ -n "$epic_id" ]]; then
+      epic_line="epic: $epic_id"
+    else
+      epic_line=""
+    fi
+    if [[ "$dry_run" == true ]]; then
+      echo "Would create ${file#$repo_root/}"
+      exit 0
+    fi
+    cat >"$file" <<EOF
+---
+status: active
+$epic_line
+---
+
+# PLAN-$number: ${slug//-/ }
+
+## Goal
+- TODO
+
+## Non-goals
+- TODO
+
+## Approach
+- TODO
+
+## Steps
+- [ ] TODO
+
+## Contract updates (if this plan changes a module's REST boundary)
+- [ ] Module contract consumer surface reviewed/updated
+- [ ] OpenAPI annotations match contract
+
+## Risks & mitigations
+
+| Risk | Mitigation |
+|---|---|
+
+## Definition of done
+- TODO
+
+## Decision log
+
+| Date | Decision | Rationale |
+|---|---|---|
+
+## Tech debt introduced
+- None yet.
+EOF
+    ;;
+  *)
+    usage
+    ;;
+esac
+
+echo "Created ${file#$repo_root/}"

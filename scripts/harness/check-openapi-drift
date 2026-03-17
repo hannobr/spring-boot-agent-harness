@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+committed_spec="$repo_root/docs/generated/openapi.json"
+log_dir="$repo_root/target/harness"
+
+if [[ ! -f "$committed_spec" ]]; then
+  echo "No committed OpenAPI spec at ${committed_spec#$repo_root/}. Run scripts/harness/generate-openapi first." >&2
+  exit 1
+fi
+
+# --offline mode: use pre-fetched spec from smoke-startup (no app startup needed)
+if [[ "${1:-}" == "--offline" ]]; then
+  tmp_spec="$log_dir/openapi-current.json"
+  if [[ ! -f "$tmp_spec" ]]; then
+    echo "No pre-fetched spec at ${tmp_spec#$repo_root/}. smoke-startup may not have fetched it." >&2
+    echo "Falling back to online mode..." >&2
+  else
+    # Compare
+    strip_servers() {
+      python3 -c "
+import json, sys
+spec = json.load(open(sys.argv[1]))
+spec.pop('servers', None)
+json.dump(spec, sys.stdout, indent=4, sort_keys=True)
+" "$1"
+    }
+
+    if ! diff -q <(strip_servers "$committed_spec") \
+                  <(strip_servers "$tmp_spec") >/dev/null 2>&1; then
+      echo "OpenAPI spec has drifted from committed version." >&2
+      echo "Run 'scripts/harness/generate-openapi' to update docs/generated/openapi.json" >&2
+      echo "Then review the module contract's consumer surface for alignment." >&2
+      diff --unified <(strip_servers "$committed_spec") \
+                     <(strip_servers "$tmp_spec") >&2 || true
+      exit 1
+    fi
+
+    echo "OpenAPI spec is current."
+    rm -f "$tmp_spec"
+    exit 0
+  fi
+fi
+
+# Online mode: start app, fetch spec, compare
+tmp_spec="$log_dir/openapi-check.json"
+smoke_port="${SMOKE_STARTUP_PORT:-18082}"
+log_file="$log_dir/check-openapi-drift.log"
+
+mkdir -p "$log_dir"
+: > "$log_file"
+
+cd "$repo_root"
+docker compose up -d
+
+./mvnw -Dspring-boot.run.arguments="--server.port=$smoke_port" spring-boot:run >"$log_file" 2>&1 &
+app_pid=$!
+
+cleanup() {
+  if kill -0 "$app_pid" 2>/dev/null; then
+    kill "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+  fi
+  rm -f "$tmp_spec"
+  docker compose down 2>/dev/null || true
+  docker rm -f template-postgres 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+for _ in $(seq 1 120); do
+  if ! kill -0 "$app_pid" 2>/dev/null; then
+    echo "Application exited before startup completed. Log: $log_file" >&2
+    tail -n 50 "$log_file" >&2 || true
+    exit 1
+  fi
+
+  if grep -q "Started " "$log_file" 2>/dev/null; then
+    if command -v curl >/dev/null 2>&1; then
+      if curl -fsS "http://localhost:$smoke_port/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+        break
+      fi
+    else
+      break
+    fi
+  fi
+
+  sleep 1
+done
+
+if ! curl -fsS "http://localhost:$smoke_port/v3/api-docs" -o "$tmp_spec" 2>/dev/null; then
+  echo "Failed to fetch OpenAPI spec from http://localhost:$smoke_port/v3/api-docs" >&2
+  exit 1
+fi
+
+strip_servers() {
+  python3 -c "
+import json, sys
+spec = json.load(open(sys.argv[1]))
+spec.pop('servers', None)
+json.dump(spec, sys.stdout, indent=4, sort_keys=True)
+" "$1"
+}
+
+if ! diff -q <(strip_servers "$committed_spec") \
+              <(strip_servers "$tmp_spec") >/dev/null 2>&1; then
+  echo "OpenAPI spec has drifted from committed version." >&2
+  echo "Run 'scripts/harness/generate-openapi' to update docs/generated/openapi.json" >&2
+  echo "Then review the module contract's consumer surface for alignment." >&2
+  diff --unified <(strip_servers "$committed_spec") \
+                 <(strip_servers "$tmp_spec") >&2 || true
+  exit 1
+fi
+
+echo "OpenAPI spec is current."

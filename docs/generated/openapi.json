@@ -1,0 +1,139 @@
+{
+  "components": {
+    "schemas": {
+      "CreateNoteRequestDTO": {
+        "description": "Request to create a note",
+        "properties": {
+          "body": {
+            "description": "Note body",
+            "example": "Hello, world!",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "description": "Note title",
+            "example": "My first note",
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "body",
+          "title"
+        ],
+        "type": "object"
+      },
+      "NoteResponseDTO": {
+        "description": "Note response",
+        "properties": {
+          "body": {
+            "description": "Note body",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Creation timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Note ID",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Note title",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/notes": {
+      "post": {
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNoteRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponseDTO"
+                }
+              }
+            },
+            "description": "Note created"
+          }
+        },
+        "summary": "Create a note",
+        "tags": [
+          "Notepad"
+        ]
+      }
+    },
+    "/api/notes/{id}": {
+      "get": {
+        "operationId": "findById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponseDTO"
+                }
+              }
+            },
+            "description": "Note found"
+          },
+          "404": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponseDTO"
+                }
+              }
+            },
+            "description": "Note not found"
+          }
+        },
+        "summary": "Find a note by ID",
+        "tags": [
+          "Notepad"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Reference implementation \u2014 delete when starting real work",
+      "name": "Notepad"
+    }
+  ]
+}

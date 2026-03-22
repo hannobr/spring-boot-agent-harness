@@ -22,7 +22,7 @@ docker run -d --name template-postgres -p 5433:5432 \
 Data is ephemeral (tmpfs) but sufficient for development and testing. Stop with `docker rm -f template-postgres`.
 
 ## Architecture
-Java 25, Spring Boot 4, Spring Data JDBC (no JPA), PostgreSQL, Flyway migrations. Testcontainers for tests, Docker Compose for local dev. Spring Modulith vertical modules. Module boundaries enforced by ApplicationModules.verify(). ArchUnit enforces no-JPA, constructor-injection-only field rules, and internal-class visibility. JWT bearer token auth (HMAC dev, issuer-uri prod). No modules yet — this is a clean greenfield template.
+Java 25, Spring Boot 4, Spring Data JDBC (no JPA), PostgreSQL, Flyway migrations. Testcontainers for tests, Docker Compose for local dev. Spring Modulith vertical modules. Module boundaries enforced by ApplicationModules.verify(). ArchUnit enforces no-JPA, constructor-injection-only field rules, internal-class visibility, and `@NullMarked` on all packages. Null safety via JSpecify 1.0 annotations + NullAway (Error Prone plugin) — compile-time enforcement in `OnlyNullMarked` mode. JWT bearer token auth (HMAC dev, issuer-uri prod). No modules yet — this is a clean greenfield template.
 
 ## Module structure
 Top-level packages under `nl.jinsoo.template` are business modules (Spring Modulith). See [`.claude/rules/modulith.md`](.claude/rules/modulith.md) for the full module structure, creation checklist, and cross-module rules. Every module must have a contract at `.claude/rules/modules/<module-name>.md`.

@@ -58,7 +58,7 @@ Spring Modulith hides all subpackages automatically. Only root package types are
 
 ## Creating a new module
 
-1. **Create `package-info.java`** with `@ApplicationModule(allowedDependencies = ...)`
+1. **Create `package-info.java`** with `@NullMarked` and `@ApplicationModule(allowedDependencies = ...)`. For standard modules, also create `package-info.java` with `@NullMarked` in each subpackage (`internal/`, `persistence/`, `rest/`)
 2. **Domain first** (root package): `<Module>API` interface, domain records, domain exceptions
 3. **Use cases** (internal/ for standard, root for flat)
 4. **Port interfaces** (internal/ for standard)

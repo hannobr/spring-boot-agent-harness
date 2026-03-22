@@ -1,11 +1,16 @@
 package nl.jinsoo.template;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaPackage;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +54,20 @@ class ArchitectureRulesTest {
         .notBePublic()
         .allowEmptyShould(true)
         .check(classes);
+  }
+
+  @Test
+  void allPackagesMustBeNullMarked() {
+    Map<String, JavaPackage> packages = new LinkedHashMap<>();
+    for (JavaClass cls : classes) {
+      packages.putIfAbsent(cls.getPackageName(), cls.getPackage());
+    }
+    assertThat(packages).isNotEmpty();
+    packages.forEach(
+        (name, pkg) ->
+            assertThat(pkg.isAnnotatedWith(NullMarked.class))
+                .as("Package %s must have @NullMarked in package-info.java", name)
+                .isTrue());
   }
 
   @Test

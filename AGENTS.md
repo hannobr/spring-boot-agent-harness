@@ -37,6 +37,7 @@ Docker is required for tests and local development. Local development uses `dock
 ## Working Rules
 - Treat top-level packages under `nl.jinsoo.template` as business modules. The root package of a module is its public API; `internal/`, `persistence/`, and `rest/` are hidden implementation details.
 - Keep current architectural constraints intact: Spring Data JDBC only, Flyway-only schema changes, no JPA, no mapping frameworks, constructor injection only, thin controllers, and framework-free domain/use-case code.
+- Every `package-info.java` must have `@org.jspecify.annotations.NullMarked`. Use `@Nullable` only where null is genuinely part of the contract. NullAway enforces at compile time.
 - Use the current test pyramid and Spring Boot 4 testing APIs. Do not regress to deprecated patterns such as `@MockBean`, `TestRestTemplate`, raw `MockMvc`, or embedded H2 shortcuts.
 - Never commit unless the user explicitly asks.
 - When a path-local `AGENTS.md` exists, it refines these root rules for its subtree.

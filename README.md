@@ -1,52 +1,44 @@
 # Spring Boot 4 Template
 
-Agent-first Java 25 / Spring Boot 4 template with Spring Modulith, Spring Data JDBC, Flyway, PostgreSQL, and deterministic validation.
+Java 25 Spring Boot 4 starter with an example CRUD module, providing an harness for claude code (codex also works, but is lagging behind in options for creating such a harness)
 
-## Quick Start
+## What's included
+
+- **Java 25 + Spring Boot 4** with virtual threads
+- **Spring Modulith** vertical modules with enforced boundaries
+- **Spring Data JDBC** (no JPA)
+- **PostgreSQL + Flyway** migrations
+- **Reference module** with a notes API (`POST /api/notes`, `GET /api/notes/{id}`)
+- **Quality gates** via Spotless, PMD, SpotBugs, JaCoCo, ArchUnit, Error Prone + NullAway
+- **Null safety** via JSpecify 1.0 annotations enforced at compile time
+- **JWT auth** via Spring Security OAuth2 Resource Server
+- **OpenAPI/Swagger** at `/swagger-ui.html`
+
+## Prerequisites
+
+**Docker** must be running (PostgreSQL runs in a container).
+
+**Java 25** via [SDKMAN!](https://sdkman.io):
 
 ```bash
+curl -s "https://get.sdkman.io" | bash
+sdk install java 25-open
+```
+
+Maven is included via the wrapper (`./mvnw`).
+
+## Quick start
+
+```bash
+git clone <repo-url> && cd <repo-name>
 scripts/harness/run-app
 ```
 
-Or manually:
+Starts PostgreSQL and the app. Open [Swagger UI](http://localhost:8080/swagger-ui.html) to try the notes API.
 
-```bash
-docker compose up -d
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-```
+## Make it yours
 
-Swagger UI: http://localhost:8080/swagger-ui.html
-
-Optional once you add a protected `/api/...` endpoint:
-
-```bash
-./scripts/generate-token.sh [subject]
-```
-
-## Architecture
-
-Spring Modulith vertical modules with enforced boundaries. Top-level packages under `nl.jinsoo.template` are business modules.
-
-Each module follows one of two patterns:
-
-| Pattern | When to use | Structure |
-|---------|-------------|-----------|
-| **flat** | Simple modules (≤5 classes, no REST, trivial persistence) | All classes in root package, package-private visibility |
-| **standard** | Modules with business logic, persistence, and REST | `internal/`, `persistence/`, `rest/` subpackages |
-
-Create a new module with `scripts/harness/new-module`. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture map.
-
-## Development
-
-```bash
-scripts/harness/fast-check           # Compile + doc-lint
-./mvnw -q verify                     # Tests + quality gates
-scripts/harness/full-check           # Verify + smoke startup + OpenAPI drift
-scripts/harness/generate-openapi     # Refresh docs/generated/openapi.json after API changes
-./mvnw spotless:apply                # Format code
-```
-
-## Use as Template
+Rewrites packages, Maven coordinates, Docker config, and removes the sample notepad module:
 
 ```bash
 scripts/harness/init-template \
@@ -55,23 +47,22 @@ scripts/harness/init-template \
   --base-package com.yourorg.yourservice
 ```
 
-Use `--dry-run` to preview changes before applying.
+Use `--dry-run` to preview changes first.
 
-## Testing
+## Development
 
-| Tier | Annotation | Docker? |
-|------|-----------|---------|
-| Unit | None | No |
-| Slice (persistence) | `@DataJdbcTest` | Yes |
-| Slice (REST) | `@WebMvcTest` | No |
-| Module | `@ApplicationModuleTest` | Yes |
-| Integration | `@SpringBootTest` | Yes |
+```bash
+scripts/harness/fast-check           # Compile + doc-lint
+./mvnw -q verify                     # Tests + quality gates
+scripts/harness/full-check           # Verify + smoke startup + OpenAPI drift check
+./mvnw spotless:apply                # Auto-format code
+scripts/harness/new-module           # Scaffold a new module
+```
 
-## Using with Claude Code
+## Learn more
 
-This repo is optimized for [Claude Code](https://claude.com/claude-code). The `.claude/rules/` directory encodes architecture rules, module contracts, and quality standards that Claude follows automatically.
-
-See [CLAUDE.md](CLAUDE.md) for build commands and conventions.
+- [ARCHITECTURE.md](ARCHITECTURE.md) for module structure, persistence rules, and test pyramid
+- [CLAUDE.md](CLAUDE.md) for [Claude Code](https://claude.com/claude-code) integration
 
 ## License
 

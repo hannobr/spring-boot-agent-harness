@@ -93,9 +93,19 @@ if [[ "$pattern" == "standard" ]]; then
 fi
 
 cat >"$module_dir/package-info.java" <<EOF
+@org.jspecify.annotations.NullMarked
 $(module_annotation "$allowed_deps")
 package $base_package.$module_name;
 EOF
+
+if [[ "$pattern" == "standard" ]]; then
+  for subpkg in internal persistence rest; do
+    cat >"$module_dir/$subpkg/package-info.java" <<EOF
+@org.jspecify.annotations.NullMarked
+package $base_package.$module_name.$subpkg;
+EOF
+  done
+fi
 
 cat >"$module_dir/${module_class}.java" <<EOF
 package $base_package.$module_name;
@@ -220,6 +230,7 @@ TODO: intent, idempotency, retry-safety, UX expectations.
 \`\`\`
 
 ## Rules for changes in this module
+- Every \`package-info.java\` must have \`@org.jspecify.annotations.NullMarked\`. New subpackages need their own \`package-info.java\`.
 - New public types in root package must be added to the "Public API" table above
 - New internal classes must follow existing patterns per \`.claude/rules/modulith.md\`
 - No other module may directly access this module's owned tables

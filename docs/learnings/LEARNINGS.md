@@ -34,6 +34,13 @@ These are permanently relevant for the current stack (Java 25, Spring Boot 4, Sp
 - `AutoConfigureTestDatabase` moved to `org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase`.
 - `RANDOM_PORT` + `localhost:${server.port}` fails (resolves to 0). Use `DEFINED_PORT` for self-referencing HTTP.
 
+### NullAway + Error Prone (2026-03-22)
+
+- `AnnotatedPackages` and `OnlyNullMarked` flags are mutually exclusive. NullAway throws `IllegalStateException` if both are set.
+- Forked compilation (`<fork>true</fork>`) swallows all Error Prone/NullAway error messages — Maven captures no compiler output from the forked javac process. Use in-process compilation with `--add-exports`/`--add-opens` in `.mvn/jvm.config` instead.
+- Java package annotations (`@NullMarked` on `package-info.java`) do NOT propagate to subpackages. Each subpackage needs its own `package-info.java` with `@NullMarked`, otherwise `OnlyNullMarked` mode silently skips it.
+- Error Prone 2.48.0 and NullAway 0.13.1 work with Java 25 without issues.
+
 ### Tooling compatibility (2026-03-15)
 
 - **Spotless**: Requires 3.0.0+ and Google Java Format 1.27.0+ for Java 25.

@@ -33,6 +33,9 @@
 		<java.version>25</java.version>
 		<spring-modulith.version>2.0.3</spring-modulith.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
+		<error-prone.version>2.48.0</error-prone.version>
+		<nullaway.version>0.13.1</nullaway.version>
+		<jspecify.version>1.0.0</jspecify.version>
 	</properties>
 
 	<dependencyManagement>
@@ -54,6 +57,11 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
+			<version>${jspecify.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -154,11 +162,26 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<compilerArgs>
+						<arg>-XDcompilePolicy=simple</arg>
+						<arg>--should-stop=ifError=FLOW</arg>
+						<arg>-Xplugin:ErrorProne -XepOpt:NullAway:OnlyNullMarked=true</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 							<version>${lombok.version}</version>
+						</path>
+						<path>
+							<groupId>com.google.errorprone</groupId>
+							<artifactId>error_prone_core</artifactId>
+							<version>${error-prone.version}</version>
+						</path>
+						<path>
+							<groupId>com.uber.nullaway</groupId>
+							<artifactId>nullaway</artifactId>
+							<version>${nullaway.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>

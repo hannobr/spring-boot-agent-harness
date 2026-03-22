@@ -23,7 +23,7 @@ The goal is to make each module the default unit of change for both humans and c
 - Testcontainers
 - Actuator
 
-Build-time quality gates are part of the architecture, not an optional add-on. The repo uses Spotless, PMD, SpotBugs, JaCoCo, ArchUnit, Spring Modulith verification, OpenAPI drift checks, and startup smoke validation.
+Build-time quality gates are part of the architecture, not an optional add-on. The repo uses Spotless, PMD, SpotBugs, JaCoCo, ArchUnit, Error Prone + NullAway (JSpecify null safety), Spring Modulith verification, OpenAPI drift checks, and startup smoke validation.
 
 ## Module Shape
 
@@ -83,6 +83,7 @@ The runtime harness is intentionally simple: local Docker Compose for developmen
   - no JPA imports
   - no field-level `@Autowired` or `@Value` injection
   - non-public `internal` classes
+  - `@NullMarked` on all packages (JSpecify null safety)
 - [ModularityVerificationTest.java](src/test/java/nl/jinsoo/template/ModularityVerificationTest.java) runs `ApplicationModules.verify()` to enforce Modulith structure
 
 ### Test pyramid

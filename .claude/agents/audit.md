@@ -35,6 +35,8 @@ These are already enforced by automated tooling (ArchUnit, Spotless, Application
 - Internal classes being `public` — ArchUnit `internalClassesShouldBePackagePrivate`
 - Missing `@Transactional` on module API implementations — ArchUnit
 - Module boundary violations — `ApplicationModules.verify()`
+- Null-safety annotation enforcement — NullAway at compile time
+- Missing `@NullMarked` on packages — ArchUnit `allPackagesMustBeNullMarked`
 - OpenAPI spec drift — `check-openapi-drift`
 
 ## Process

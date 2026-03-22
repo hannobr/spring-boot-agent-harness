@@ -73,6 +73,7 @@ None
 ```
 
 ## Rules for changes in this module
+- Every `package-info.java` must have `@org.jspecify.annotations.NullMarked`. New subpackages need their own `package-info.java`.
 - New public types in root package must be added to the "Public API" table above
 - New internal classes must follow existing patterns per `.claude/rules/modulith.md`
 - No other module may directly access this module's owned tables

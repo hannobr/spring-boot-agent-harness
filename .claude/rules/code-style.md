@@ -68,6 +68,18 @@ Maven group: `tools.jackson` (not `com.fasterxml.jackson`).
 1. Spring Data JDBC 4.x: explicit `@Id` required on entity ID fields.
 2. ArchUnit: requires 1.4.1+ for Java 25.
 
+## Null safety
+
+This project uses JSpecify 1.0 annotations enforced by NullAway at compile time.
+
+- Every `package-info.java` must have `@org.jspecify.annotations.NullMarked`. ArchUnit enforces this.
+- Non-null is the default inside `@NullMarked` scope. Only annotate with `@Nullable` where null is genuinely part of the contract.
+- Use `@Nullable` on parameters, fields, and return types that legitimately accept or produce null.
+- `Optional` remains the preferred return type for public API methods (per "Optional as return type only" rule). Use `@Nullable` for internal types, fields, and parameters where `Optional` would be inappropriate.
+- Never use older annotation sets: no JSR-305 (`javax.annotation`), no JetBrains (`org.jetbrains.annotations`), no FindBugs/SpotBugs (`edu.umd.cs.findbugs`). JSpecify is the only allowed annotation source.
+- Subpackages do NOT inherit `@NullMarked` from parent packages. Every package with Java source files needs its own `package-info.java` with `@NullMarked`.
+- Use `@NullUnmarked` only as a temporary escape hatch for code that cannot yet be made null-safe. Document why.
+
 ## Security basics
 
 - No secrets in source code. Use environment variables or Spring config properties.

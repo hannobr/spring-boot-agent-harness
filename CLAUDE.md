@@ -28,7 +28,7 @@ Java 25, Spring Boot 4, Spring Data JDBC (no JPA), PostgreSQL, Flyway migrations
 Top-level packages under `nl.jinsoo.template` are business modules (Spring Modulith). See [`.claude/rules/modulith.md`](.claude/rules/modulith.md) for the full module structure, creation checklist, and cross-module rules. Every module must have a contract at `.claude/rules/modules/<module-name>.md`.
 
 ## Plans
-**TRIGGER**: For multi-file or architectural changes, persist the approved plan to `docs/exec-plans/active/PLAN-NNNN-topic.md` BEFORE writing any code. When work spans multiple plans, persist an `EPIC-NNNN-topic.md` file FIRST, before creating any child plans. This applies whether the plan comes from plan mode, a user message, or your own proposal. Always include a decision log and tech debt section. See `.claude/rules/exec-plans.md` for format.
+**TRIGGER**: For multi-file or architectural changes, persist the approved plan to `docs/exec-plans/active/PLAN-NNNN-topic.md` BEFORE writing any code (Use `scripts/harness/new-exec-plan <epic|plan> <topic-slug> [EPIC-XXXX]` to create plan files — it handles sequence numbering and templating automatically.). When work spans multiple plans, persist an `EPIC-NNNN-topic.md` file FIRST, before creating any child plans. This applies whether the plan comes from plan mode, a user message, or your own proposal. Always include a decision log and tech debt section. See `.claude/rules/exec-plans.md` for format.
 
 **TRIGGER**: When you make a trade-off, choose between alternatives, suppress a rule, or deviate from the plan — append an entry to the relevant plan's decision log immediately.
 

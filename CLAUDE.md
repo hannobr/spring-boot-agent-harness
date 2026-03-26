@@ -30,6 +30,8 @@ Top-level packages under `nl.jinsoo.template` are business modules (Spring Modul
 ## Plans
 **TRIGGER**: For multi-file or architectural changes, persist the approved plan to `docs/exec-plans/active/PLAN-NNNN-topic.md` BEFORE writing any code (Use `scripts/harness/new-exec-plan <epic|plan> <topic-slug> [EPIC-XXXX]` to create plan files — it handles sequence numbering and templating automatically.). When work spans multiple plans, persist an `EPIC-NNNN-topic.md` file FIRST, before creating any child plans. This applies whether the plan comes from plan mode, a user message, or your own proposal. Always include a decision log and tech debt section. See `.claude/rules/exec-plans.md` for format.
 
+**MANDATORY**: Always use `scripts/harness/new-exec-plan` to create plan/epic files. Never create them by hand. The script assigns the correct sequence number and generates the full template with every required section.
+
 **TRIGGER**: When you make a trade-off, choose between alternatives, suppress a rule, or deviate from the plan — append an entry to the relevant plan's decision log immediately.
 
 **TRIGGER**: When all tasks in a plan are complete, move it from `docs/exec-plans/active/` to `docs/exec-plans/completed/`

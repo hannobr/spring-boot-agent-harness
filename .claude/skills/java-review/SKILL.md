@@ -498,6 +498,7 @@ Before sending the review:
 - make sure each finding is actionable
 - merge duplicates and remove overlap
 - keep the highest-signal points first
+- verify each finding is reachable in the actual code path, not just theoretically possible from the pattern
 - verify that file and line references point to the actual problem
 - state uncertainty instead of bluffing
 - if the code looks sound, say so directly rather than manufacturing objections

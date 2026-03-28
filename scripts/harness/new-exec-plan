@@ -71,7 +71,9 @@ status: active
 |---|---|---|---|
 
 ## Definition of done
-- TODO
+- [ ] All child PLANs completed and moved to \`completed/\`
+- [ ] \`scripts/harness/full-check\` passes on integrated result
+- [ ] TODO: epic-specific exit conditions (must be machine-verifiable — state command + expected outcome)
 
 ## Tech debt introduced
 - None yet.
@@ -121,7 +123,7 @@ $epic_line
 ## Definition of done
 - [ ] Audit agent passes (spawn \`audit\` agent to verify rule compliance)
 - [ ] \`scripts/harness/full-check\` passes
-- TODO
+- [ ] TODO: task-specific exit conditions (must be machine-verifiable — state command + expected outcome)
 
 ## Decision log
 

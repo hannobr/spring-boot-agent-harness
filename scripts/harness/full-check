@@ -9,3 +9,12 @@ cd "$repo_root"
 ./mvnw -q verify "$@"
 "$repo_root/scripts/harness/smoke-startup"
 "$repo_root/scripts/harness/check-openapi-drift" --offline
+
+# Stamp DoD state file with verification timestamp.
+# Claude states intent (dod-current.json), this script confirms verification passed.
+dod_state="$repo_root/.claude/dod-current.json"
+if [[ -f "$dod_state" ]] && command -v jq >/dev/null 2>&1 && jq empty "$dod_state" 2>/dev/null; then
+  jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '. + {verified_at: $ts}' "$dod_state" > "$dod_state.tmp" \
+    && mv "$dod_state.tmp" "$dod_state"
+  echo "DoD verified_at stamped: $(jq -r .verified_at "$dod_state")"
+fi

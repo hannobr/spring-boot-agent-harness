@@ -33,6 +33,7 @@ build/
 .vscode/
 /.claude/worktrees/*
 /.claude/settings.local.json
+/.claude/dod-current.json
 /.claude/skills/*-workspace/
 /.playwright-mcp/*
 

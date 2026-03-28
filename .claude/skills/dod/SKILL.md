@@ -130,6 +130,32 @@ RATIONALE: <one sentence on why this tier>
 If the user has already provided tests or a clear exit condition, acknowledge it
 and proceed. Do not repeat what they already know.
 
+### Persist the exit condition
+
+Immediately after stating the exit condition, write it to the state file so it
+survives context compression. Use a single Bash tool call:
+
+```bash
+cat > .claude/dod-current.json << 'DODEOF'
+{
+  "task": "<one-line description>",
+  "risk_tier": "<CRITICAL|HIGH|MEDIUM|LOW>",
+  "exit_condition": "<exact command(s)>",
+  "expected_outcome": "<what success looks like>",
+  "stated_at": "<ISO 8601 UTC timestamp>"
+}
+DODEOF
+```
+
+Rules:
+- **Overwrite, never delete.** Each new DoD invocation overwrites the file.
+- The `stated_at` value must be the current UTC ISO 8601 timestamp.
+- The `exit_condition` value must be the exact verification command, not prose.
+- If the user provided tests or a clear exit condition that you acknowledged,
+  still write the state file — the file is what the Stop hook checks.
+- **Do not add `verified_at`** — that field is written only by
+  `scripts/harness/full-check` when all checks pass.
+
 ## Step 3 — Implement Without Changing the Exit Condition
 
 For CRITICAL and HIGH tasks where tests were written or identified first:

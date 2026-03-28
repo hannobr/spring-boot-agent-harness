@@ -56,3 +56,6 @@ Append a new entry when:
 
 ## Git discipline
 NEVER commit unless the user explicitly asks. Leave changes staged/unstaged and wait for instruction.
+
+## Definition of Done
+Before implementing, identify a machine-checkable exit condition appropriate to the task's risk level. State it before writing code. Run it after.

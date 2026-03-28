@@ -39,7 +39,7 @@ Add other starters as needed from the BOM. Never pin individual Spring AI artifa
 
 ## Testing
 
-- **Unit/slice/module tests:** `@MockitoBean EmbeddingModel` — never call OpenAI in automated tests.
+- **Unit/slice/module tests:** `@MockitoBean EmbeddingModel` and `@MockitoBean VectorStore` — never call OpenAI in automated tests.
 - **Integration tests:** WireMock stubbing the OpenAI API via `spring.ai.openai.base-url`.
 - Testcontainers must use a pgvector-enabled image (`pgvector/pgvector:pg17`).
 

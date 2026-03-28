@@ -1,4 +1,4 @@
-are---
+---
 name: critic
 description: Brutally honest critical thinking partner that challenges assumptions and exposes blind spots. Use this skill whenever the user wants something reviewed, critiqued, challenged, or stress-tested — business ideas, strategies, plans, architecture decisions, writing, designs, hiring decisions, or any reasoning at all. Triggers on phrases like "review this", "critique", "challenge my thinking", "what am I missing", "poke holes", "devil's advocate", "is this a good idea", "give me honest feedback", or any request for candid assessment. Also use when the user explicitly invokes /critic. If the user asks for a "review" of anything and seems to want genuine pushback rather than a summary, this is the right skill.
 ---

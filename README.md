@@ -2,6 +2,8 @@
 A Java 25 / Spring Boot 4 starter for developers who want to experiment with AI coding agents and who are interested in harness engineering (https://openai.com/index/harness-engineering/). I created this repo with these goals in mind:
 1. Check what Codex / Claude code is capable of with Java 25, Spring boot 4+ and Spring ai 2+
 2. Check how we can enforce Codex / Claude code to adhere to our rules consistently, not only by providing native solutions (like Claude code rules, skills, agents, hooks) but also enforce rules via the harness described below.
+
+   So far path based rules look promising to make sure rules are always present in the context window when relevant.
 3. Find an optimal architecture that is suitable for agentic coding, where we want to keep context windows as clean as possible. Vertical slices + Spring Modulith look really promising so far.
 
 The non-goals:

@@ -1,12 +1,16 @@
 # spring-boot-agent-harness
-A Java 25 / Spring Boot 4 starter for developers who want to work with AI coding agents. The repo ships enforceable rules, module contracts, validation gates, and execution plans that make agents productive instead of dangerous.
-OpenAI calls this approach harness engineering: https://openai.com/index/harness-engineering/
+A Java 25 / Spring Boot 4 starter for developers who want to experiment with AI coding agents and who are interested in harness engineering (https://openai.com/index/harness-engineering/). I created this repo with these goals in mind:
+1. Check what Codex / Claude code is capable of with Java 25, Spring boot 4+ and Spring ai 2+
+2. Check how we can enforce Codex / Claude code to adhere to our rules consistently, not only by providing native solutions (like Claude code rules, skills, agents, hooks) but also enforce rules via the harness described below.
+3. Find an optimal architecture that is suitable for agentic coding, where we want to keep context windows as clean as possible. Vertical slices + Spring Modulith look really promising so far.
+
+The non-goals:
+1. While finding an optimal architecture can be a real result for agentic coding, this repo is NOT meant as a best practice.
+2. I am mainly interested in if/how Codex / Claude code is able to adhere to what it is instructed, not what the instruction itself exactly is (looking at code-style, testing etc.)
+
+If you have questions, you can always approach me here: https://nl.linkedin.com/in/hanno-brinkman-9847a636
 
 Clone it, run `init-template` to make it yours, and start building.
-
-About the choice for vertical slices with Spring Modulith:
-Context window management matters for coding agents. Spring Modulith enforces hard module boundaries, an agent only needs the module it's changing plus the public contracts of its
-dependencies, not the entire codebase.
 
 ## The harness
 This one gives you infrastructure for agent-assisted development, while also making some very opinionated Spring Boot choices:

@@ -32,7 +32,7 @@ Top-level packages under `nl.jinsoo.template` are business modules (Spring Modul
 
 **MANDATORY**: Always use `scripts/harness/new-exec-plan` to create plan/epic files. Never create them by hand. The script assigns the correct sequence number and generates the full template with every required section.
 
-**IMPORTANT**: Plan mode (`EnterPlanMode`) is for within-conversation alignment. It does NOT substitute for an exec plan. If the work qualifies for an exec plan (multi-file or architectural), create it with `scripts/harness/new-exec-plan` BEFORE or DURING plan mode, not instead of it.
+**IMPORTANT**: When plan mode produces an approach that qualifies for an exec plan, persist it via `scripts/harness/new-exec-plan` before exiting plan mode. The exec-plan file is the durable output of the planning phase.
 
 **TRIGGER**: When you make a trade-off, choose between alternatives, suppress a rule, or deviate from the plan — append an entry to the relevant plan's decision log immediately.
 

@@ -38,7 +38,6 @@ Tasks where a silent bug has financial, legal, or security consequences:
 - Data validation on financial inputs (amounts, IBANs, BSNs)
 - Encryption, hashing, credential handling, secret rotation
 - Audit trail and logging of regulated events
-- ECLI citation extraction and validation (Jurido project)
 
 Exit condition: one or more JUnit 5 tests that assert the exact expected behavior,
 confirmed failing before implementation, passing after.
@@ -57,7 +56,6 @@ Tasks where bugs are caught in integration but are expensive to fix late:
 - Refactoring modules that have existing test coverage
 - Integration with external services or message brokers
 - State machine transitions
-- Elasticsearch query/mapping changes (Jurido)
 - Spring Modulith module boundary changes
 
 Exit condition: run existing relevant tests first to confirm green baseline. If
@@ -183,7 +181,6 @@ This project uses:
 - ArchUnit for architecture rule enforcement
 - JUnit 5 + AssertJ for testing
 - Flyway or Liquibase for database migrations
-- Elasticsearch (where applicable, e.g., Jurido)
 - Maven multi-module structure
 
 Adapt commands to the actual module and test class names in the project.

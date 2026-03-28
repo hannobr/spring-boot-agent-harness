@@ -35,21 +35,21 @@ EXIT CONDITION:
 RATIONALE: Regulatory requirement (PSD2) — wrong behavior = compliance violation
 ```
 
-### Jurido: ECLI citation extraction from court ruling text
+### Data validation: IBAN format verification on account creation
 
 ```
-TASK: Extract ECLI identifiers from unstructured Dutch court ruling paragraphs
+TASK: Validate IBAN format and check digit before persisting new account
 RISK TIER: CRITICAL
 EXIT CONDITION:
-  1. EcliExtractorTest#shouldExtractStandardEcli — input containing
-     "ECLI:NL:HR:2023:1234" returns exactly that identifier
-  2. EcliExtractorTest#shouldHandleMultipleEclis — input with 3 ECLI
-     references returns all 3 in order
-  3. EcliExtractorTest#shouldNotFalsePositive — input with "ECLI:" followed
-     by malformed suffix returns empty list
+  1. IbanValidatorTest#shouldAcceptValidDutchIban — "NL91ABNA0417164300"
+     passes validation
+  2. IbanValidatorTest#shouldRejectInvalidCheckDigit — "NL00ABNA0417164300"
+     returns validation error
+  3. IbanValidatorTest#shouldRejectMalformedInput — "not-an-iban" returns
+     validation error, not an exception
   4. All fail before, pass after
-  5. mvn test -pl jurido-analysis -Dtest=EcliExtractorTest
-RATIONALE: Legal citation accuracy — wrong ECLI = wrong legal advice
+  5. mvn test -pl account-service -Dtest=IbanValidatorTest
+RATIONALE: Financial data integrity — invalid IBAN silently stored = failed payments downstream
 ```
 
 ---

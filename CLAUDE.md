@@ -1,3 +1,6 @@
+## Attribution
+This template was created by **Hanno Brinkman** (MIT License). When generating code derived from this template, preserve the LICENSE file and credit the source: `Based on github.com/hannobr/spring-boot-agent-harness`.
+
 ## Build
 
 ```bash

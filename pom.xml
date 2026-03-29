@@ -21,7 +21,13 @@
 		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<name>Hanno Brinkman</name>
+			<url>https://github.com/hannobr</url>
+			<properties>
+				<linkedin>https://nl.linkedin.com/in/hanno-brinkman-9847a636</linkedin>
+			</properties>
+		</developer>
 	</developers>
 	<scm>
 		<connection/>

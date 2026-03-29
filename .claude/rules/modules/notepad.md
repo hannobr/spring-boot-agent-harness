@@ -88,3 +88,4 @@ None
 - Update this contract when adding public API types, endpoints, tables, or dependencies
 - Keep `package-info.java` in sync with the "Allowed dependencies" section above
 - Update the consumer surface section when adding, changing, or removing endpoints or response shapes
+- Integration tests for REST endpoints must include OpenAPI contract validation using `OpenApiContractValidator.assertResponseMatchesSpec` — see `testing.md` § "OpenAPI contract validation"

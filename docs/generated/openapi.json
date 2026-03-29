@@ -87,6 +87,33 @@
         },
         "type": "object"
       },
+      "ProblemDetail": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "format": "uri",
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateNoteRequestDTO": {
         "description": "Request to update a note",
         "properties": {
@@ -213,6 +240,13 @@
             "description": "Note deleted"
           },
           "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
             "description": "Note not found"
           }
         },
@@ -247,9 +281,9 @@
           },
           "404": {
             "content": {
-              "*/*": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NoteResponseDTO"
+                  "$ref": "#/components/schemas/ProblemDetail"
                 }
               }
             },
@@ -297,9 +331,9 @@
           },
           "404": {
             "content": {
-              "*/*": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NoteResponseDTO"
+                  "$ref": "#/components/schemas/ProblemDetail"
                 }
               }
             },

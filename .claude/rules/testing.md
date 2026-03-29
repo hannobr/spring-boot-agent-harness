@@ -73,7 +73,8 @@ For exception assertions, match the style of the rest of the class:
 
 ## Bean override gotchas
 
-- Use `@MockitoBean(enforceOverride = true)` or `@TestBean(enforceOverride = true)` when overriding beans. Without `enforceOverride`, `@MockitoBean` defaults to `REPLACE_OR_CREATE` — it silently creates a mock even if no matching bean exists, masking wiring errors.
+- Use `@MockitoBean(enforceOverride = true)` or `@TestBean(enforceOverride = true)` when overriding a bean that **exists in the test's application context** (e.g., `@SpringBootTest`, `@ApplicationModuleTest`). Without `enforceOverride`, `@MockitoBean` defaults to `REPLACE_OR_CREATE` — it silently creates a mock even if no matching bean exists, masking wiring errors.
+- Do **not** use `enforceOverride = true` in `@WebMvcTest` slices for module API dependencies — these beans are not loaded in the web slice context. The mock is creating the bean, not replacing one. Using `enforceOverride = true` here causes context loading failure.
 - When using `@MockitoSpyBean`, always stub with `doReturn(...).when(spy).method()` instead of `when(spy.method()).thenReturn(...)`. The latter calls the real method during stub setup, causing side effects (exceptions, state changes, database writes).
 - `@MockitoBean` and `@TestBean` can only be placed on **non-static fields in test classes** — not on `@Configuration` classes. This is a difference from the old `@MockBean`.
 
@@ -271,6 +272,54 @@ var response = RestTestClientResponse.from(
 );
 assertThat(response).hasStatus(HttpStatus.CREATED);
 ```
+
+### OpenAPI contract validation
+
+Integration tests must validate response shapes against the committed `docs/generated/openapi.json`. This catches structural drift (wrong fields, missing properties, type mismatches) that hand-written jsonPath assertions miss.
+
+Use `OpenApiContractValidator.assertResponseMatchesSpec(method, path, status, body, contentType)` after the existing assertion chain. Add `.returnResult()` at the end of the expectation chain to capture the response.
+
+```java
+// Responses with body — append .returnResult(), then validate
+var result = client.get().uri("/api/orders/{id}", 1)
+    .exchange()
+    .expectStatus().isOk()
+    .expectBody()
+    .jsonPath("$.id").isEqualTo(1)
+    .returnResult();
+
+OpenApiContractValidator.assertResponseMatchesSpec(
+    "GET", "/api/orders/1", 200, result.getResponseBody(), "application/json");
+
+// Empty responses (204, 202) — no body to capture
+client.delete().uri("/api/orders/{id}", 1)
+    .exchange()
+    .expectStatus().isNoContent();
+
+OpenApiContractValidator.assertResponseMatchesSpec(
+    "DELETE", "/api/orders/1", 204, null, null);
+
+// Error responses — use application/problem+json for RFC 9457
+var errorResult = client.get().uri("/api/orders/999")
+    .exchange()
+    .expectStatus().isNotFound()
+    .expectBody()
+    .returnResult();
+
+OpenApiContractValidator.assertResponseMatchesSpec(
+    "GET", "/api/orders/999", 404, errorResult.getResponseBody(), "application/problem+json");
+
+// Query parameters — include in the path string
+OpenApiContractValidator.assertResponseMatchesSpec(
+    "GET", "/api/orders?page=0&size=10", 200, result.getResponseBody(), "application/json");
+```
+
+Rules:
+- Every module with REST endpoints must have contract validation in its integration test.
+- Validate at least: one success path per endpoint, one error path per distinct error status.
+- Pass the actual path (e.g., `/api/notes/1`), not the template (`/api/notes/{id}`) — the validator resolves path parameters automatically.
+- Use `"application/json"` for success responses and `"application/problem+json"` for RFC 9457 error responses.
+- This complements `scripts/harness/check-openapi-drift` — drift detection checks the spec matches the app, contract validation checks individual responses match the spec.
 
 ## Spring AI 2.x testing
 

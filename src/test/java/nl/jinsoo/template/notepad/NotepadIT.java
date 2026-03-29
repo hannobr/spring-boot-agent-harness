@@ -9,7 +9,9 @@ import com.nimbusds.jwt.SignedJWT;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import nl.jinsoo.template.OpenApiContractValidator;
 import nl.jinsoo.template.TestcontainersConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,12 +30,18 @@ import tools.jackson.databind.ObjectMapper;
 class NotepadIT {
 
   @Autowired private RestTestClient restTestClient;
+  @Autowired private JdbcTemplate jdbc;
 
   @Value("${jwt.secret-key}")
   private String jwtSecretKey;
 
   @Value("${jwt.audience:}")
   private String jwtAudience;
+
+  @BeforeEach
+  void cleanDatabase() {
+    jdbc.execute("TRUNCATE TABLE notes RESTART IDENTITY CASCADE");
+  }
 
   private String generateToken() {
     try {
@@ -73,6 +82,9 @@ class NotepadIT {
             .isNotEmpty()
             .returnResult();
 
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "POST", "/api/notes", 201, createResponse.getResponseBody(), "application/json");
+
     var tree = new ObjectMapper().readTree(createResponse.getResponseBody());
     return tree.get("id").asString();
   }
@@ -82,31 +94,42 @@ class NotepadIT {
     var token = generateToken();
     var noteId = createNote(token, "Integration", "Test body");
 
-    restTestClient
-        .get()
-        .uri("/api/notes/" + noteId)
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.title")
-        .isEqualTo("Integration");
+    var result =
+        restTestClient
+            .get()
+            .uri("/api/notes/" + noteId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.title")
+            .isEqualTo("Integration")
+            .returnResult();
+
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "GET", "/api/notes/" + noteId, 200, result.getResponseBody(), "application/json");
   }
 
   @Test
   void getNonexistentNoteReturns404() {
     var token = generateToken();
-    restTestClient
-        .get()
-        .uri("/api/notes/999999")
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .exchange()
-        .expectStatus()
-        .isNotFound()
-        .expectBody()
-        .jsonPath("$.title")
-        .isEqualTo("Note Not Found");
+
+    var result =
+        restTestClient
+            .get()
+            .uri("/api/notes/999999")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath("$.title")
+            .isEqualTo("Note Not Found")
+            .returnResult();
+
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "GET", "/api/notes/999999", 404, result.getResponseBody(), "application/problem+json");
   }
 
   @Test
@@ -115,20 +138,25 @@ class NotepadIT {
     createNote(token, "List Test 1", "Body 1");
     createNote(token, "List Test 2", "Body 2");
 
-    restTestClient
-        .get()
-        .uri("/api/notes?page=0&size=10")
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.content")
-        .isArray()
-        .jsonPath("$.totalElements")
-        .isNumber()
-        .jsonPath("$.page")
-        .isEqualTo(0);
+    var result =
+        restTestClient
+            .get()
+            .uri("/api/notes?page=0&size=10")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.content")
+            .isArray()
+            .jsonPath("$.totalElements")
+            .isNumber()
+            .jsonPath("$.page")
+            .isEqualTo(0)
+            .returnResult();
+
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "GET", "/api/notes?page=0&size=10", 200, result.getResponseBody(), "application/json");
   }
 
   @Test
@@ -136,25 +164,30 @@ class NotepadIT {
     var token = generateToken();
     var noteId = createNote(token, "Before Update", "Old body");
 
-    restTestClient
-        .put()
-        .uri("/api/notes/" + noteId)
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(
-            """
-            {"title": "After Update", "body": "New body"}
-            """)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.title")
-        .isEqualTo("After Update")
-        .jsonPath("$.body")
-        .isEqualTo("New body")
-        .jsonPath("$.updatedAt")
-        .isNotEmpty();
+    var result =
+        restTestClient
+            .put()
+            .uri("/api/notes/" + noteId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(
+                """
+                {"title": "After Update", "body": "New body"}
+                """)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.title")
+            .isEqualTo("After Update")
+            .jsonPath("$.body")
+            .isEqualTo("New body")
+            .jsonPath("$.updatedAt")
+            .isNotEmpty()
+            .returnResult();
+
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "PUT", "/api/notes/" + noteId, 200, result.getResponseBody(), "application/json");
 
     restTestClient
         .get()
@@ -181,6 +214,9 @@ class NotepadIT {
         .expectStatus()
         .isNoContent();
 
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "DELETE", "/api/notes/" + noteId, 204, null, null);
+
     restTestClient
         .get()
         .uri("/api/notes/" + noteId)
@@ -193,15 +229,21 @@ class NotepadIT {
   @Test
   void deleteNonexistentNoteReturns404() {
     var token = generateToken();
-    restTestClient
-        .delete()
-        .uri("/api/notes/999999")
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .exchange()
-        .expectStatus()
-        .isNotFound()
-        .expectBody()
-        .jsonPath("$.title")
-        .isEqualTo("Note Not Found");
+
+    var result =
+        restTestClient
+            .delete()
+            .uri("/api/notes/999999")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath("$.title")
+            .isEqualTo("Note Not Found")
+            .returnResult();
+
+    OpenApiContractValidator.assertResponseMatchesSpec(
+        "DELETE", "/api/notes/999999", 404, result.getResponseBody(), "application/problem+json");
   }
 }

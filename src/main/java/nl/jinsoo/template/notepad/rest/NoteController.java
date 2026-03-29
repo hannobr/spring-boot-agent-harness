@@ -1,6 +1,8 @@
 package nl.jinsoo.template.notepad.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -8,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import nl.jinsoo.template.notepad.NotepadAPI;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +45,13 @@ class NoteController {
   @GetMapping("/{id}")
   @Operation(summary = "Find a note by ID")
   @ApiResponse(responseCode = "200", description = "Note found")
-  @ApiResponse(responseCode = "404", description = "Note not found")
+  @ApiResponse(
+      responseCode = "404",
+      description = "Note not found",
+      content =
+          @Content(
+              mediaType = "application/problem+json",
+              schema = @Schema(implementation = ProblemDetail.class)))
   NoteResponseDTO findById(@PathVariable long id) {
     return NoteResponseDTO.from(notepadAPI.findById(id));
   }
@@ -59,7 +68,13 @@ class NoteController {
   @PutMapping("/{id}")
   @Operation(summary = "Update a note")
   @ApiResponse(responseCode = "200", description = "Note updated")
-  @ApiResponse(responseCode = "404", description = "Note not found")
+  @ApiResponse(
+      responseCode = "404",
+      description = "Note not found",
+      content =
+          @Content(
+              mediaType = "application/problem+json",
+              schema = @Schema(implementation = ProblemDetail.class)))
   NoteResponseDTO update(@PathVariable long id, @Valid @RequestBody UpdateNoteRequestDTO request) {
     return NoteResponseDTO.from(notepadAPI.update(id, request.toDomain()));
   }
@@ -68,7 +83,13 @@ class NoteController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @Operation(summary = "Delete a note")
   @ApiResponse(responseCode = "204", description = "Note deleted")
-  @ApiResponse(responseCode = "404", description = "Note not found")
+  @ApiResponse(
+      responseCode = "404",
+      description = "Note not found",
+      content =
+          @Content(
+              mediaType = "application/problem+json",
+              schema = @Schema(implementation = ProblemDetail.class)))
   void delete(@PathVariable long id) {
     notepadAPI.delete(id);
   }

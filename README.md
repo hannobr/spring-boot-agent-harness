@@ -14,20 +14,22 @@ If you have questions, you can always approach me here: https://nl.linkedin.com/
 
 Clone it, run `init-template` to make it yours, and start building.
 
-## The harness
-This one gives you infrastructure for agent-assisted development, while also making some very opinionated Spring Boot choices.
+## The scaffolding
+It gives you infrastructure for agent-assisted development, while also making some very opinionated Spring Boot choices.
 
-So far i like the mvn wrapper that i created with Claude Code:
+### Maven wrapper (`scripts/harness/mvn`)
 
-scripts/harness/mvn wraps all Maven invocations for minimal, high-signal output. On success it prints a one-liner; on failure it extracts [ERROR] lines from the console and reads structured build artifacts (target/surefire-reports, target/failsafe-reports) to surface assertion messages
-that Maven's -q mode never prints to the console. Full unfiltered output from the last run is available at target/runner.log.
+Wraps all Maven invocations for minimal, high-signal output. On success it prints a one-liner; on failure it extracts `[ERROR]` lines from the console **and** reads structured build artifacts (`target/surefire-reports`, `target/failsafe-reports`) to surface assertion messages that
+Maven's `-q` mode never prints to the console. Full unfiltered output from the last run is available at `target/runner.log`.
 
-- **`.claude/rules/`** path-based rules, automatically injected whenever relevant files are touched. Unlike subagents or skills, these don't need to be explicitly invoked.
-- **Module contracts** (`.claude/rules/modules/`) pin ownership, public API, dependencies, and validation commands per module. Agents know what's off-limits
-- **Audit agent** reviews code against rules after changes. Skips what the compiler and linters already enforce
-- **Harness scripts** (`full-check`, `fast-check`, `new-module`) give agents deterministic validation — green or red, no "looks good to me"
-- **Execution plans** (`docs/exec-plans/`) persist multi-step work so agents resume across sessions without losing context
-- **Learnings** (`docs/learnings/`) accumulate framework gotchas. Agents check before starting work
+### Infrastructure
+
+- **Path-based rules** (`.claude/rules/`) — automatically injected whenever relevant files are touched. Unlike subagents or skills, these don't need to be explicitly invoked.
+- **Module contracts** (`.claude/rules/modules/`) — pin ownership, public API, dependencies, and validation commands per module. Agents know what's off-limits.
+- **Audit agent** — reviews code against rules after changes. Skips what the compiler and linters already enforce.
+- **Harness scripts** (`full-check`, `fast-check`, `new-module`) — give agents deterministic validation. Green or red, no "looks good to me."
+- **Execution plans** (`docs/exec-plans/`) — persist multi-step work so agents resume across sessions without losing context.
+- **Learnings** (`docs/learnings/`) — accumulate framework gotchas. Agents check before starting work.
 
 Optimized for [Claude Code](https://claude.com/claude-code). Works with Codex via `AGENTS.md`.
 

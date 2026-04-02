@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Maven wrapper that routes through run-cmd for minimal output.
+# On test failure, appends assertion/exception details from surefire reports.
 # Usage: scripts/harness/mvn [MAVEN_ARGS...]
 # Example: scripts/harness/mvn test -Dtest=FooTest
 
-set -euo pipefail
+set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -17,4 +18,25 @@ done
 [[ -z "$label" ]] && label="mvn"
 
 cd "$repo_root"
-exec "$repo_root/scripts/harness/run-cmd" --label "$label" -- ./mvnw "$@"
+exit_code=0
+"$repo_root/scripts/harness/run-cmd" --label "$label" -- ./mvnw "$@" || exit_code=$?
+
+# On test failure, extract assertion/exception details from surefire reports
+if [[ $exit_code -ne 0 ]]; then
+  reports_dir="$repo_root/target/surefire-reports"
+  if [[ -d "$reports_dir" ]]; then
+    # Extract assertion/exception details from surefire .txt reports
+    # Captures everything between "<<< FAILURE/ERROR!" and the stack trace
+    for report in "$reports_dir"/*.txt; do
+      [[ -f "$report" ]] || continue
+      awk '
+        /<<< (FAILURE|ERROR)!/ { printing=1; next }
+        printing && /^\tat / { printing=0; next }
+        printing && /^---/ { printing=0; next }
+        printing { print }
+      ' "$report"
+    done | head -30 >&2
+  fi
+fi
+
+exit "$exit_code"

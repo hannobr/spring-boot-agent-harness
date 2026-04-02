@@ -6,6 +6,8 @@
 # On success: prints "<label> succeeded (Xs)"
 # On failure: prints error lines (capped at 20) + log file path, exits with command's exit code.
 # Full output always written to target/runner.log (overwritten each invocation).
+# During execution, output goes to a temp file to survive commands that delete target/ (e.g. mvn clean).
+# The temp file is moved to the final location after the command completes.
 
 set -uo pipefail
 
@@ -31,13 +33,18 @@ fi
 
 [[ -z "$label" ]] && label="$(basename "$1")"
 
-mkdir -p "$(dirname "$log_file")"
+tmp_log=$(mktemp "${TMPDIR:-/tmp}/runner.XXXXXX.log")
+trap 'rm -f "$tmp_log"' EXIT
 
 start_time=$(date +%s)
 exit_code=0
-"$@" > "$log_file" 2>&1 || exit_code=$?
+"$@" > "$tmp_log" 2>&1 || exit_code=$?
 end_time=$(date +%s)
 elapsed=$((end_time - start_time))
+
+# Move temp log to final location (recreate target/ if clean nuked it)
+mkdir -p "$(dirname "$log_file")"
+mv "$tmp_log" "$log_file"
 
 if [[ $exit_code -eq 0 ]]; then
   echo "$label succeeded (${elapsed}s)"

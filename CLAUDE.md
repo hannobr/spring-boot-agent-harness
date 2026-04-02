@@ -14,6 +14,8 @@ scripts/harness/mvn spotless:check       # check formatting only
 
 **IMPORTANT**: Always use `scripts/harness/mvn` instead of `./mvnw`. It wraps Maven through `run-cmd` for minimal output — one-liner on success, error-only lines on failure, full log at `target/runner.log`.
 
+**IMPORTANT**: Do not run `git diff` after `spotless:apply` — success is sufficient, the diff is noise.
+
 ## Prerequisites
 Docker must be running for tests and local development. Tests use Testcontainers (auto-managed). Local development uses a PostgreSQL container via `docker compose up -d`.
 

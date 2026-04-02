@@ -7,14 +7,14 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Derive label from first non-flag argument (the Maven goal/phase)
-label="mvn"
+# Derive label from all non-flag arguments (Maven goals/phases)
+label=""
 for arg in "$@"; do
   if [[ "$arg" != -* ]]; then
-    label="$arg"
-    break
+    label="${label:+$label }$arg"
   fi
 done
+[[ -z "$label" ]] && label="mvn"
 
 cd "$repo_root"
 exec "$repo_root/scripts/harness/run-cmd" --label "$label" -- ./mvnw "$@"

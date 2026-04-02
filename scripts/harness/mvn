@@ -21,11 +21,10 @@ cd "$repo_root"
 exit_code=0
 "$repo_root/scripts/harness/run-cmd" --label "$label" -- ./mvnw "$@" || exit_code=$?
 
-# On test failure, extract assertion/exception details from surefire reports
+# On test failure, extract assertion/exception details from surefire/failsafe reports
 if [[ $exit_code -ne 0 ]]; then
-  reports_dir="$repo_root/target/surefire-reports"
-  if [[ -d "$reports_dir" ]]; then
-    # Extract assertion/exception details from surefire .txt reports
+  for reports_dir in "$repo_root/target/surefire-reports" "$repo_root/target/failsafe-reports"; do
+    [[ -d "$reports_dir" ]] || continue
     # Captures everything between "<<< FAILURE/ERROR!" and the stack trace
     for report in "$reports_dir"/*.txt; do
       [[ -f "$report" ]] || continue
@@ -35,8 +34,8 @@ if [[ $exit_code -ne 0 ]]; then
         printing && /^---/ { printing=0; next }
         printing { print }
       ' "$report"
-    done | head -30 >&2
-  fi
+    done
+  done | head -30 >&2
 fi
 
 exit "$exit_code"

@@ -20,22 +20,22 @@ Preferred Codex harness entrypoints:
 - `scripts/harness/run-app`
 - `scripts/harness/smoke-startup`
 - `scripts/harness/doc-lint`
+- `scripts/harness/generate-openapi`
 - `scripts/harness/new-exec-plan`
 - `scripts/harness/new-module`
 
-Underlying repo commands:
-- `./mvnw -q compile`
-- `./mvnw -q test`
-- `./mvnw -q verify`
+Underlying repo commands (always use `scripts/harness/mvn` instead of `./mvnw`):
+- `scripts/harness/mvn compile`
+- `scripts/harness/mvn test`
+- `scripts/harness/mvn verify`
+- `scripts/harness/mvn spotless:apply`
+- `scripts/harness/mvn spotless:check`
 - `docker compose up -d`
-- `./mvnw spring-boot:run`
-- `./mvnw spotless:apply`
-- `./mvnw spotless:check`
 
-Docker is required for tests and local development. Local development uses `docker compose`, while tests use Testcontainers. In sandboxed environments, `docker compose` may need the documented manual `docker run` fallback, and SpotBugs may require `-Dspotbugs.skip=true`.
+Docker is required for tests and local development. Local development uses `docker compose`, while tests use Testcontainers. In sandboxed environments, `docker compose` may need the documented manual `docker run` fallback (see CLAUDE.md).
 
 ## Working Rules
-- Treat top-level packages under `nl.jinsoo.jurido` as business modules. The root package of a module is its public API; `internal/`, `persistence/`, and `rest/` are hidden implementation details.
+- Treat top-level packages under `nl.jinsoo.template` as business modules. The root package of a module is its public API; `internal/`, `persistence/`, and `rest/` are hidden implementation details.
 - Keep current architectural constraints intact: Spring Data JDBC only, Flyway-only schema changes, no JPA, no mapping frameworks, constructor injection only, thin controllers, and framework-free domain/use-case code.
 - Every `package-info.java` must have `@org.jspecify.annotations.NullMarked`. Use `@Nullable` only where null is genuinely part of the contract. NullAway enforces at compile time.
 - Use the current test pyramid and Spring Boot 4 testing APIs. Do not regress to deprecated patterns such as `@MockBean`, `TestRestTemplate`, raw `MockMvc`, or embedded H2 shortcuts.
@@ -58,6 +58,5 @@ Docker is required for tests and local development. Local development uses `dock
 
 ## Completion Criteria
 - Every production change must be backed by the appropriate tests for its layer.
-- `./mvnw -q verify` is the mandatory final validation command.
-- After `verify`, confirm runtime startup with `docker compose up -d && ./mvnw spring-boot:run` and wait for a successful start.
+- `scripts/harness/full-check` is the mandatory final validation step (build + all tests + doc-lint + smoke-startup + OpenAPI drift check).
 - Keep Codex-facing docs aligned with the same standards already configured for Claude; the Codex layer must not weaken the existing architecture, planning, or validation rules.

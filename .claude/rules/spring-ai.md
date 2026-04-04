@@ -7,7 +7,7 @@ paths:
 
 # Spring AI rules
 
-This project uses **Spring AI 2+** for all AI/ML features. This is a project-wide mandate.
+IF using Spring AI: **Spring AI 2+** for all AI/ML features. This is a project-wide mandate.
 
 ## Version
 
